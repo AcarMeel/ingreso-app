@@ -4,10 +4,13 @@ import { auth } from 'firebase';
 import { Router } from '@angular/router';
 
 import { map } from "rxjs/operators";
+import { Store } from "@ngrx/store";
 
 import Swal from 'sweetalert2';
 import { User } from './user.model';
 import { AngularFirestore } from '@angular/fire/firestore';
+import { AppState } from '../app.reducer';
+import { ActivateLoadingAction, DeactivateLoadingAction } from '../shared/ui.actions';
 
 @Injectable({
   providedIn: 'root'
@@ -16,7 +19,8 @@ export class AuthService {
 
   constructor(private afAuth: AngularFireAuth,
               private router: Router,
-              private afDB: AngularFirestore) { }
+              private afDB: AngularFirestore,
+              private store: Store<AppState>) { }
   
   initAuthListener() {
     this.afAuth.authState.subscribe(fbUser => {
@@ -25,6 +29,7 @@ export class AuthService {
   }
 
   public createUser(data) {
+    this.store.dispatch(new ActivateLoadingAction());
     this.afAuth.auth
     .createUserWithEmailAndPassword(data.email, data.password)
     .then(res => {
@@ -41,25 +46,27 @@ export class AuthService {
         // navigate to dashboard
         this.router.navigate(['/']);
         Swal('Account created', `Welcome ${res.user.email}`, 'success');
+        this.store.dispatch(new DeactivateLoadingAction());
       })
     })
     .catch(err => {
-      console.error(err);
+      this.store.dispatch(new DeactivateLoadingAction());
       Swal('Signup error', err.message, 'error');
     });
   }
 
   public login(data) {
+    this.store.dispatch(new ActivateLoadingAction());
     this.afAuth.auth
     .signInWithEmailAndPassword(data.email, data.password)
     .then(res => {
-      console.info(res);
       this.router.navigate(['/']);
       Swal('Login success', `Welcome ${res.user.email}`, 'success');
+      this.store.dispatch(new DeactivateLoadingAction());
     })
     .catch(err => {
-      console.error(err);
       Swal('Login error', err.message, 'error');
+      this.store.dispatch(new DeactivateLoadingAction());
     });
   }
 
